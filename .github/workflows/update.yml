@@ -1,0 +1,72 @@
+name: Update air quality data
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 00:00 UTC = 03:00 Riyadh, every day
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "Rebuild the full history from 5 Aug 2022"
+        type: boolean
+        default: false
+      api_url:
+        description: "Override the API URL (only used to test that a failed run sends an email)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write   # commit the updated CSVs
+  actions: write    # re-enable this workflow if the repo ever goes quiet
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Fetch, aggregate and check the data
+        env:
+          AQ_API_URL: ${{ inputs.api_url }}
+        run: python src/air_quality.py ${{ inputs.backfill && '--backfill' || '' }}
+
+      - name: Commit the data if it changed
+        run: |
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+          else
+            git config user.name "khaledbinkhunein"
+            git config user.email "343924651+khaledbinkhunein@users.noreply.github.com"
+            git commit -m "Data through $(tail -n 1 data/daily.csv | cut -d, -f1)"
+            git push
+          fi
+
+      # GitHub pauses scheduled workflows after 60 days without repository activity.
+      # The daily data commit normally keeps the repo active; if there has been no
+      # commit for 45 days, re-enable the workflow, which resets that timer.
+      - name: Keep the daily schedule from being paused
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          days=$(( ( $(date +%s) - $(git log -1 --format=%ct) ) / 86400 ))
+          echo "Last commit was $days day(s) ago."
+          if [ "$days" -ge 45 ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/update.yml/enable"
+            echo "Re-enabled the workflow to reset the 60-day inactivity timer."
+          fi
