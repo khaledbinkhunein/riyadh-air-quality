@@ -62,11 +62,23 @@ CAP_MIN_DUST = 3000.0
 # Hours with PM10 below 5 µg/m³ and zero dust never occur otherwise in this region.
 SUSPECT_PM10 = 5.0
 
+# CAMS upgraded its global model (Cy49r1) on 12 Nov 2024. In this data Riyadh's and
+# Jeddah's PM10 jump from 14 Nov 2024 while Dammam, Dubai and Doha don't, so values
+# before and after are not compared as a trend. Every row is labelled with its period.
+MODEL_UPGRADE = dt.date(2024, 11, 12)
+PERIOD_BEFORE = "Before CAMS upgrade (to 11 Nov 2024)"
+PERIOD_AFTER = "After CAMS upgrade (from 12 Nov 2024)"
+
+
+def model_period(day: str) -> str:
+    return PERIOD_AFTER if day >= MODEL_UPGRADE.isoformat() else PERIOD_BEFORE
+
+
 FIELDS = [
     "date", "city", "year", "month",
     "pm10_mean", "pm10_max", "pm25_mean", "dust_max",
     "above_who_pm10", "above_who_pm25", "dust_day",
-    "pm10_capped_hours", "suspect",
+    "pm10_capped_hours", "suspect", "model_period",
 ]
 
 
@@ -266,6 +278,8 @@ def run(backfill: bool = False, today: dt.date | None = None, fetch=fetch_hourly
         problems += probs
 
     rows = merge(existing, new_rows)
+    for r in rows:
+        r["model_period"] = model_period(r["date"])
     warnings = check(rows, today)          # raises on missing days, negatives, staleness
     write_csv(daily_path, rows, FIELDS)
     summary = build_summary(rows)

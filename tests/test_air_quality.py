@@ -155,3 +155,14 @@ def test_pm25_above_pm10_only_warns(tmp_path, fake_api):
     rows = copy.deepcopy(good_rows(tmp_path, fake_api))
     rows[0]["pm25_mean"] = str(float(rows[0]["pm10_mean"]) + 1)
     assert any("PM2.5" in w for w in aq.check(rows, dt.date(2026, 10, 18)))
+
+
+def test_rows_are_labelled_with_the_model_period():
+    assert aq.model_period("2024-11-11") == aq.PERIOD_BEFORE
+    assert aq.model_period("2024-11-12") == aq.PERIOD_AFTER
+
+
+def test_full_run_adds_model_period_to_every_row(tmp_path, fake_api):
+    aq.run(today=dt.date(2026, 10, 18), fetch=fake_api,
+           daily_path=tmp_path / "d.csv", summary_path=tmp_path / "s.csv")
+    assert {r["model_period"] for r in aq.read_daily(tmp_path / "d.csv")} == {aq.PERIOD_AFTER}
