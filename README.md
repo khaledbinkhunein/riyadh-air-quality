@@ -4,7 +4,13 @@
 
 This project answers that every day, with no manual work. A Python script on GitHub Actions pulls hourly particulate estimates for Riyadh, Jeddah, Dammam, Dubai and Doha. It turns them into daily figures, checks them and commits them to this repo. A Looker Studio dashboard reads the files through a Google Sheet.
 
-**Live dashboard:** link coming once the Looker Studio report is published.
+**Live dashboard:** [Riyadh Air Quality & Dust Tracker (Looker Studio)](https://datastudio.google.com/reporting/ae53592e-9b5c-4750-8d65-7ada64b39ccc)
+
+![How clean was Riyadh's air this week?](screenshots/01-this-week.png)
+
+| When is Riyadh's air worst? | How does Riyadh compare with other Gulf cities? |
+|---|---|
+| ![When is Riyadh's air worst?](screenshots/02-worst-months.png) | ![How does Riyadh compare with other Gulf cities?](screenshots/03-gulf-comparison.png) |
 
 Data runs from **5 Aug 2022** and updates every day at 03:00 Riyadh time. Each update adds the previous full day.
 
