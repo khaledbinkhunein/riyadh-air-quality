@@ -2,7 +2,7 @@
 
 **How dusty is Riyadh's air, how often does it break the WHO daily guideline, and how does it compare with other Gulf cities?**
 
-This project answers that every day, with no manual work. A Python script on GitHub Actions pulls hourly particulate estimates for Riyadh, Jeddah, Dammam, Dubai and Doha. It turns them into daily figures, checks them and commits them to this repo. A Looker Studio dashboard reads the files through a Google Sheet.
+This project answers that every day, with no manual work. A Python script on GitHub Actions pulls hourly particulate estimates for Riyadh, Jeddah, Dammam, Dubai and Doha. It turns them into daily figures, checks them and commits them to this repo. A Looker Studio dashboard (Google has since renamed it Data Studio) reads the files through a Google Sheet.
 
 **Live dashboard:** [Riyadh Air Quality & Dust Tracker (Looker Studio)](https://datastudio.google.com/reporting/ae53592e-9b5c-4750-8d65-7ada64b39ccc)
 
