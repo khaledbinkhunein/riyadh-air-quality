@@ -6,7 +6,7 @@ This project answers that every day, with no manual work. A Python script on Git
 
 **Live dashboard:** [Riyadh Air Quality & Dust Tracker (Looker Studio)](https://datastudio.google.com/reporting/ae53592e-9b5c-4750-8d65-7ada64b39ccc)
 
-![How clean was Riyadh's air this week?](screenshots/01-this-week.png)
+![How clean was Riyadh's air this week? The page leads with a verdict comparing the latest day with usual days of the same month.](screenshots/01-this-week.png)
 
 | When is Riyadh's air worst? | How does Riyadh compare with other Gulf cities? |
 |---|---|
