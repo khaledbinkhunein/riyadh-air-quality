@@ -215,9 +215,9 @@ def verdict_for(pct_rank: float, comparison_days: int) -> str:
     """Map a percentile rank (share of comparison days that were cleaner) to words."""
     if comparison_days < MIN_COMPARISON_DAYS:
         return NOT_ENOUGH
-    if pct_rank < 0.25:
+    if pct_rank < 0.33:
         return "cleaner than usual"
-    if pct_rank < 0.75:
+    if pct_rank < 0.67:
         return "about usual"
     if pct_rank <= 0.90:
         return "dustier than usual"

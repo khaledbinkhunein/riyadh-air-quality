@@ -60,9 +60,9 @@ Open-Meteo API ──► src/air_quality.py (GitHub Actions, daily) ──► da
 
    | pct_rank | Verdict |
    |---|---|
-   | below 0.25 | cleaner than usual |
-   | 0.25 to below 0.75 | about usual |
-   | 0.75 to 0.90 | dustier than usual |
+   | below 0.33 | cleaner than usual |
+   | 0.33 to below 0.67 | about usual |
+   | 0.67 to 0.90 | dustier than usual |
    | above 0.90 | much dustier than usual |
 
    With fewer than 20 comparison days the verdict is "not enough history yet". The sentence on the dashboard (`perspective_text`) is written by the same script, so it updates with the data.

@@ -190,9 +190,9 @@ def test_typical_and_pct_rank_on_known_data():
 
 
 @pytest.mark.parametrize("pct, expected", [
-    (0.0, "cleaner than usual"), (0.249, "cleaner than usual"),
-    (0.25, "about usual"), (0.749, "about usual"),
-    (0.75, "dustier than usual"), (0.90, "dustier than usual"),
+    (0.0, "cleaner than usual"), (0.329, "cleaner than usual"),
+    (0.33, "about usual"), (0.669, "about usual"),
+    (0.67, "dustier than usual"), (0.90, "dustier than usual"),
     (0.901, "much dustier than usual"), (1.0, "much dustier than usual"),
 ])
 def test_verdict_boundaries(pct, expected):
