@@ -19,6 +19,7 @@ import argparse
 import csv
 import datetime as dt
 import math
+import statistics
 import os
 import sys
 import time
@@ -72,6 +73,16 @@ PERIOD_AFTER = "After CAMS upgrade (from 12 Nov 2024)"
 
 def model_period(day: str) -> str:
     return PERIOD_AFTER if day >= MODEL_UPGRADE.isoformat() else PERIOD_BEFORE
+
+
+def period_start(period: str) -> dt.date:
+    return MODEL_UPGRADE if period == PERIOD_AFTER else FIRST_DAY
+
+
+# Daily verdict: the latest day is compared with earlier days of the same calendar
+# month in the same model period (never across the upgrade, never with suspect days).
+MIN_COMPARISON_DAYS = 20
+NOT_ENOUGH = "not enough history yet"
 
 
 FIELDS = [
@@ -200,6 +211,60 @@ def merge(existing: list[dict], new: list[dict]) -> list[dict]:
     return sorted(by_key.values(), key=lambda r: (r["date"], list(CITIES).index(r["city"])))
 
 
+def verdict_for(pct_rank: float, comparison_days: int) -> str:
+    """Map a percentile rank (share of comparison days that were cleaner) to words."""
+    if comparison_days < MIN_COMPARISON_DAYS:
+        return NOT_ENOUGH
+    if pct_rank < 0.25:
+        return "cleaner than usual"
+    if pct_rank < 0.75:
+        return "about usual"
+    if pct_rank <= 0.90:
+        return "dustier than usual"
+    return "much dustier than usual"
+
+
+def compare_with_usual(rows: list[dict], city: str = "Riyadh") -> dict:
+    """Compare the city's latest day with earlier days of the same month and model period."""
+    own = [r for r in rows if r["city"] == city]
+    latest = max(own, key=lambda r: r["date"])
+    period = model_period(latest["date"])
+    month = latest["date"][5:7]
+    pool = [float(r["pm10_mean"]) for r in own
+            if r["date"] < latest["date"]
+            and r["date"][5:7] == month
+            and model_period(r["date"]) == period
+            and str(r["suspect"]) != "1"]
+    value = float(latest["pm10_mean"])
+    day = dt.date.fromisoformat(latest["date"])
+    start = period_start(period)
+    month_name = day.strftime("%B")
+    head = f"{day.day} {day.strftime('%b')}"
+    since = start.strftime("%b %Y")
+    n = len(pool)
+    typical = statistics.median(pool) if pool else None
+    pct = sum(v < value for v in pool) / n if n else None
+    if str(latest["suspect"]) == "1":
+        verdict = "no verdict (model outage)"
+        text = f"{head}: no verdict. The model data for this day looks faulty."
+    else:
+        verdict = verdict_for(pct if pct is not None else 0.0, n)
+        if verdict == NOT_ENOUGH:
+            text = (f"{head}: {verdict}. Only {n} earlier {month_name} days since {since} to compare with. "
+                    f"This day read {value:,.0f} µg/m³.")
+        else:
+            text = (f"{head}: {verdict}. Riyadh's air was dustier than {pct:.0%} of {month_name} days "
+                    f"since {since}. A typical {month_name} day reads about {round(typical, -1):,.0f} µg/m³; "
+                    f"this day read {value:,.0f}.")
+    return {
+        "typical_pm10": round(typical, 1) if typical is not None else "",
+        "comparison_days": n,
+        "pct_rank": round(pct, 3) if pct is not None else "",
+        "verdict": verdict,
+        "perspective_text": text,
+    }
+
+
 def build_summary(rows: list[dict]) -> dict:
     """Headline numbers for the dashboard cards (Riyadh, latest complete day and year to date)."""
     riyadh = [r for r in rows if r["city"] == "Riyadh"]
@@ -219,6 +284,7 @@ def build_summary(rows: list[dict]) -> dict:
         "days_above_who_pm10_ytd": sum(r["above_who_pm10"] == "1" for r in ytd),
         "days_above_who_pm25_ytd": sum(r["above_who_pm25"] == "1" for r in ytd),
         "dust_days_ytd": sum(r["dust_day"] == "1" for r in ytd),
+        **compare_with_usual(rows),
     }
 
 

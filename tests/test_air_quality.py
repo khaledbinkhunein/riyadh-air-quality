@@ -166,3 +166,53 @@ def test_full_run_adds_model_period_to_every_row(tmp_path, fake_api):
     aq.run(today=dt.date(2026, 10, 18), fetch=fake_api,
            daily_path=tmp_path / "d.csv", summary_path=tmp_path / "s.csv")
     assert {r["model_period"] for r in aq.read_daily(tmp_path / "d.csv")} == {aq.PERIOD_AFTER}
+
+
+# ------------------------------------------------------- compared with usual
+def make_rows(values, month="10", year=2025, city="Riyadh", suspect=None):
+    """One row per value on consecutive days of the given month (after the model upgrade)."""
+    suspect = suspect or set()
+    return [{"date": f"{year}-{month}-{i + 1:02d}", "city": city, "pm10_mean": str(v),
+             "suspect": "1" if i in suspect else "0"} for i, v in enumerate(values)]
+
+
+def test_typical_and_pct_rank_on_known_data():
+    history = make_rows(range(100, 2600, 100))           # 25 October days: 100, 200, ..., 2500
+    latest = make_rows([1050], year=2026)                 # 1 Oct 2026
+    out = aq.compare_with_usual(history + latest)
+    assert out["comparison_days"] == 25
+    assert out["typical_pm10"] == 1300.0                  # median of 100..2500
+    assert out["pct_rank"] == 0.4                         # 10 of 25 days were lower than 1,050
+    assert out["verdict"] == "about usual"
+    assert out["perspective_text"] == (
+        "1 Oct: about usual. Riyadh's air was dustier than 40% of October days since Nov 2024. "
+        "A typical October day reads about 1,300 µg/m³; this day read 1,050.")
+
+
+@pytest.mark.parametrize("pct, expected", [
+    (0.0, "cleaner than usual"), (0.249, "cleaner than usual"),
+    (0.25, "about usual"), (0.749, "about usual"),
+    (0.75, "dustier than usual"), (0.90, "dustier than usual"),
+    (0.901, "much dustier than usual"), (1.0, "much dustier than usual"),
+])
+def test_verdict_boundaries(pct, expected):
+    assert aq.verdict_for(pct, 30) == expected
+
+
+def test_other_model_period_and_suspect_days_are_excluded():
+    history = make_rows([500] * 25)                       # Oct 2025, after the upgrade
+    old_model = make_rows([10] * 31, year=2023)           # Oct 2023, before the upgrade
+    suspects = make_rows([1] * 5, year=2026, suspect={0, 1, 2, 3, 4})[:5]
+    november = make_rows([9999] * 30, month="11")         # other month, same period
+    latest = {"date": "2026-10-21", "city": "Riyadh", "pm10_mean": "600", "suspect": "0"}
+    out = aq.compare_with_usual(history + old_model + suspects + november + [latest])
+    assert out["comparison_days"] == 25
+    assert out["typical_pm10"] == 500.0
+    assert out["pct_rank"] == 1.0
+
+
+def test_not_enough_history():
+    out = aq.compare_with_usual(make_rows([300] * 19) + make_rows([400], year=2026))
+    assert out["comparison_days"] == 19
+    assert out["verdict"] == "not enough history yet"
+    assert "Only 19 earlier October days since Nov 2024" in out["perspective_text"]
