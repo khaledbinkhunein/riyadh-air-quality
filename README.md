@@ -38,6 +38,8 @@ These are model estimates (see Limitations). The model was upgraded on 12 Nov 20
 
 Hourly variables used: `pm10`, `pm2_5` and `dust`, all in µg/m³. The API's history starts in August 2022; the first complete day is 5 Aug 2022.
 
+**Country context (fixed, not updated daily).** `data/context.csv` holds one reference figure: mean population-weighted exposure to PM2.5 in Saudi Arabia and the OECD average, for the same year, from one source: [OECD Data Explorer, "Exposure to air pollution"](https://data-explorer.oecd.org/vis?df[ds]=dsDisseminateFinalDMZ&df[id]=DSD_AIR_POL%40DF_AIR_POLL&df[ag]=OECD.ENV.EPI) (dataset `OECD.ENV.EPI:DSD_AIR_POL@DF_AIR_POLL`, measure "Mean population-weighted exposure", PM2.5, µg/m³; [API query](https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_POL@DF_AIR_POLL,1.0/SAU+OECD.A.MEAN_POP._Z.PM2_5.MCG_M3.?startPeriod=2017)). These are annual figures for the whole country, so they give scale, not a daily comparison. OECD cities are deliberately not added to the daily data: since the model upgrade CAMS reads very high over Riyadh, so a day-by-day comparison with European cities would mostly measure the model.
+
 ## Method
 
 ```
@@ -54,15 +56,25 @@ Open-Meteo API ──► src/air_quality.py (GitHub Actions, daily) ──► da
    - `dust_day`: PM10 mean above 150 µg/m³ (WHO interim target 1)
 
    Averaging a 1/0 flag gives the share of days, which is how the dashboard shows "% of days above the limit".
-4. **Check.** The run fails, and GitHub emails me, if:
+4. **Compare with usual.** A raw PM10 number says little when every day is above the WHO limit, so the dashboard leads with a comparison instead. The latest Riyadh day is ranked against earlier Riyadh days of the same calendar month in the same model period, leaving out suspect days. `pct_rank` is the share of those days that were cleaner; `typical_pm10` is their median; `comparison_days` is how many there are. The verdict comes from `pct_rank`:
+
+   | pct_rank | Verdict |
+   |---|---|
+   | below 0.25 | cleaner than usual |
+   | 0.25 to below 0.75 | about usual |
+   | 0.75 to 0.90 | dustier than usual |
+   | above 0.90 | much dustier than usual |
+
+   With fewer than 20 comparison days the verdict is "not enough history yet". The sentence on the dashboard (`perspective_text`) is written by the same script, so it updates with the data.
+5. **Check.** The run fails, and GitHub emails me, if:
    - any city-day is missing between 5 Aug 2022 and the newest day
    - any value is negative or not a number
    - any row is duplicated
    - the newest day is more than 3 days old
 
    A daily PM2.5 mean above PM10 only logs a warning, because PM2.5 is part of PM10 and this would hint at a data problem rather than prove one.
-5. **Publish.** The two CSVs are committed only when they changed. If the repository ever goes 45 days without a commit, the workflow re-enables itself, so GitHub does not pause the schedule after 60 days of inactivity.
-6. **Test.** 15 `pytest` tests run before every update, using real API responses saved in `tests/fixtures/`. One test recomputes a day's mean by hand from the 24 hourly values.
+6. **Publish.** The two CSVs are committed only when they changed. If the repository ever goes 45 days without a commit, the workflow re-enables itself, so GitHub does not pause the schedule after 60 days of inactivity.
+7. **Test.** 26 `pytest` tests run before every update, using real API responses saved in `tests/fixtures/`. One test recomputes a day's mean by hand from the 24 hourly values; others check the verdict on hand-made data with a known answer, each verdict boundary, and that other-period and suspect days are left out.
 
 ## Limitations
 
@@ -81,7 +93,8 @@ src/air_quality.py           Fetch, aggregate, check and write the CSVs
 tests/                       pytest tests and saved API responses
 .github/workflows/update.yml Daily schedule (00:00 UTC) and manual run with backfill
 data/daily.csv               One row per city per day
-data/summary.csv             One row: Riyadh's latest day and year-to-date counts
+data/summary.csv             One row: Riyadh's latest day, year-to-date counts and the "compared with usual" verdict
+data/context.csv             Fixed reference: Saudi Arabia vs OECD annual PM2.5 exposure (OECD)
 ```
 
 ### `data/daily.csv` columns
