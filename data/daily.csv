@@ -7789,3 +7789,8 @@ date,city,year,month,pm10_mean,pm10_max,pm25_mean,dust_max,above_who_pm10,above_
 2026-11-09,Dammam,2026,11,89.0,169.0,32.0,215.0,1,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
 2026-11-09,Dubai,2026,11,60.1,91.5,39.3,100.0,1,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
 2026-11-09,Doha,2026,11,63.9,95.0,25.4,114.0,1,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
+2026-11-10,Riyadh,2026,11,3158.7,3276.7,502.1,9067.0,1,1,1,15,0,After CAMS upgrade (from 12 Nov 2024)
+2026-11-10,Jeddah,2026,11,33.8,40.5,20.8,24.0,0,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
+2026-11-10,Dammam,2026,11,55.4,89.2,21.6,104.0,1,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
+2026-11-10,Dubai,2026,11,80.4,107.1,36.6,124.0,1,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
+2026-11-10,Doha,2026,11,44.5,64.0,18.8,66.0,0,1,0,0,0,After CAMS upgrade (from 12 Nov 2024)
